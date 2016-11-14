@@ -1,4 +1,4 @@
-# ardoq-archimate - a Python tool importing and exporting archimate exchange files to/from Ardoq
+# ardoq-archimate - a Python tool for importing archimate exchange files to Ardoq
 
 ## Description
 
