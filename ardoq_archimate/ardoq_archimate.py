@@ -2,10 +2,11 @@ import configparser
 import sys, os
 import xmltodict
 import logging
-sys.path.append('../../ardoq-python-client/ardoqpy')
+import ardoqpy
 sys.path.append('../resources')
-from ardoqpy import ArdoqClient
-from ardoqpy import ArdoqClientException
+
+from ardoqpy.ardoqpy import ArdoqClient
+from ardoqpy.ardoqpy import ArdoqClientException
 
 configfile='ardoq_archimate.cfg'
 #configfile = "testardoq_archimate.cfg"
@@ -242,7 +243,13 @@ def property_field_map(doc):
     #<propertydef identifier="propid-11" name="" type="string" />
     #<propertydef identifier="propid-12" name="BusinessValue" type="string" />
     if 'propertydefs' in doc:
-        for p in doc['propertydefs']['propertydef']:
+        if type(doc['propertydefs']['propertydef']) is list:
+            for p in doc['propertydefs']['propertydef']:
+                print 'Adding property: ' + p['@name']
+                field_property_map[p['@identifier']] = p['@name']
+        else:
+            p = doc['propertydefs']['propertydef']
+            print 'Adding property: ' + p['@name']
             field_property_map[p['@identifier']] = p['@name']
 
 def main():
@@ -250,7 +257,7 @@ def main():
     global ardoq
     ardoq = ArdoqClient(hosturl=config['Ardoq']['host'], token=config['Ardoq']['token'], org=config['Ardoq']['org'])
     with open(config['Archimate']['exchange_file']) as fd:
-        doc = xmltodict.parse(fd.read())
+        doc = xmltodict.parse(fd.read(),  force_list=set('propertydef'))
     model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
     logger.debug('model name: %s', model_name)
     folder_descript = 'archimate import model description'
