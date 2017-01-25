@@ -2,12 +2,12 @@ import configparser
 import sys, os
 import xmltodict
 import logging
-sys.path.append('/Users/jason/dev/IdeaProjects/ardoq-python-client/ardoqpy')
+sys.path.append('../../ardoq-python-client/ardoqpy')
 sys.path.append('../resources')
 from ardoqpy import ArdoqClient
 from ardoqpy import ArdoqClientException
 
-configfile='/Users/jason/dev/IdeaProjects/ardoq-archimate/ardoq_archimate/testardoq_archimate.cfg'
+configfile='ardoq_archimate.cfg'
 #configfile = "testardoq_archimate.cfg"
 # configfile = "./ardoq_archimate/ardoq_archimate.cfg"
 config = configparser.ConfigParser()
@@ -24,6 +24,7 @@ strategy_layer_template = '57c447c972fa6d6e74679766'
 implementation_layer_template = '57c447c972fa6d6e74679764'
 physical_layer_template = '57c447c972fa6d6e74679768'
 
+field_property_map =  {}
 
 def get_config():
     try:
@@ -38,9 +39,15 @@ def get_tag_name(name_data, lang):
     if type(name_data) is list:
         for x in name_data:
             if x['@xml:lang'] == lang:
-                return x['#text']
+                if '#text' in x:
+                    return x['#text']
+                else:
+                    return None;
     else: # xmltodict drops the list if its only one element
-        return name_data['#text']
+        if '#text' in name_data:
+            return name_data['#text']
+        else:
+            return None;
 
 
 def get_archimate_elements(doc, types):
@@ -65,8 +72,13 @@ def get_archimate_elements(doc, types):
             else:
                 elem['description'] = elem['id'] + ' : ' + elem['name']
             elems[e['@identifier']] = elem
+            if 'properties' in e:
+                elem['fields'] = {}
+                for p in e['properties']['property']:
+                    if type(p) is not unicode:
+                        elem['fields'][field_property_map[p['@identifierref']]] = get_tag_name(p['value'], config['Archimate']['lang'])
         else:
-            logger.error('found unknown archimate element type: %s', e['@xsi:type'])
+            logger.error('found unknown archimate element type: [%s]', e['@xsi:type'])
     return elems
 
 
@@ -127,6 +139,9 @@ def create_ardoq_components(layer, elems, config_items):
             try:
                 component = {'description': ev['description'], 'parent': None, 'rootWorkspace': ws_id,
                              'typeId': ardoq_type['id'], 'name': ev['name'], 'archimateID': ev['id']}
+                if 'fields' in ev:
+                    for f, fv in ev['fields'].items():
+                        component[f] = fv
                 comp = ardoq.create_component(comp=component)
                 id_map[ev['id']] = comp['_id']
             except ArdoqClientException as e:
@@ -208,10 +223,27 @@ def create_model_space(model_name, model_descript = None):
             logger.debug('workspace created: %s', workspace)
             # ws_list.append(workspace['_id'])
             w['ws_id'] = workspace['_id']
+
+            for field, field_value in field_property_map.items():
+                if field_value and len(field_value) > 1:
+                    logger.debug('Creating field: %s', field_value)
+                    # Creating fields for each componentModel.
+                    newField = {'model':workspace['componentModel'], 'name': field_value, 'label': field_value, 'type': 'Text', 'global': True,
+                    'description': '', 'globalref': False, 'defaultValue': ''}
+                    ardoq.create_field(newField)
+
         except ArdoqClientException as e:
             print (e)
     return wspaces
 
+def property_field_map(doc):
+    global field_property_map
+    #propertydefs>
+    #<propertydef identifier="propid-11" name="" type="string" />
+    #<propertydef identifier="propid-12" name="BusinessValue" type="string" />
+    if 'propertydefs' in doc:
+        for p in doc['propertydefs']['propertydef']:
+            field_property_map[p['@identifier']] = p['@name']
 
 def main():
     get_config()
@@ -222,10 +254,14 @@ def main():
     model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
     logger.debug('model name: %s', model_name)
     folder_descript = 'archimate import model description'
-    if 'dc:desciption' in doc['model']['metadata']:
+    if 'metadata' in doc['model'] and 'dc:desciption' in doc['model']['metadata']:
         folder_descript = doc['model']['metadata']['dc:desciption']
     folder = {'name': model_name, 'description': folder_descript}
+
+    property_field_map(doc['model'])
     layers = create_model_space(model_name=model_name, model_descript=folder_descript)
+
+
 
     # TODO: this bit is very inefficient. looping through all elements 3 times.
     # can do it better if the elementtypes were in a dict
@@ -254,4 +290,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
