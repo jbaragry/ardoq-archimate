@@ -3,12 +3,24 @@ import sys, os
 import xmltodict
 import logging
 import ardoqpy
+import argparse
 sys.path.append('../resources')
 
-from ardoqpy.ardoqpy import ArdoqClient
-from ardoqpy.ardoqpy import ArdoqClientException
+from ardoqpy import ArdoqClient
+from ardoqpy import ArdoqClientException
 
-configfile='ardoq_archimate.cfg'
+
+
+parser = argparse.ArgumentParser(description='Import ArchiMate Open Exchange Format files to Ardoq.')
+parser.add_argument('-c', action="store", default='ardoq_archimate.cfg', help='Relative path to import config file')
+parser.add_argument('-t', action="store", default=None, help='Token for authentication')
+parser.add_argument('--host', action="store", default=None, help='Host (API-URL) (https://app.ardoq.com)')
+parser.add_argument('-x', action="store", default=None, help='Exchange file to import')
+parser.add_argument('-o', action="store", default=None, help='Organisation to save data in')
+
+arguments = parser.parse_args()
+
+configfile=arguments.c;
 #configfile = "testardoq_archimate.cfg"
 # configfile = "./ardoq_archimate/ardoq_archimate.cfg"
 config = configparser.ConfigParser()
@@ -255,8 +267,26 @@ def property_field_map(doc):
 def main():
     get_config()
     global ardoq
-    ardoq = ArdoqClient(hosturl=config['Ardoq']['host'], token=config['Ardoq']['token'], org=config['Ardoq']['org'])
-    with open(config['Archimate']['exchange_file']) as fd:
+    host = config['Ardoq']['host']
+    if arguments.host != None:
+        host = arguments.host
+
+    token = config['Ardoq']['token']
+
+    if arguments.t != None:
+        token = arguments.t
+    org = config['Ardoq']['org']
+
+    if arguments.o != None:
+        org = arguments.o
+
+    exchange_file = config['Archimate']['exchange_file']
+
+    if arguments.x != None:
+        exchange_file = arguments.x
+
+    ardoq = ArdoqClient(hosturl=host, token=token, org=org)
+    with open(exchange_file) as fd:
         doc = xmltodict.parse(fd.read(),  force_list=set('propertydef'))
     model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
     logger.debug('model name: %s', model_name)
