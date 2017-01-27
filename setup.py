@@ -18,19 +18,19 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ardoqarchimate',
-    version='0.0.1',
+    version='0.0.4',
     description='ArchiMate Open Exchange Format (R) importer for Ardoq (R)',
     long_description=long_description,
     url='https://github.com/jbaragry/ardoq-archimate',
     author='Jason Baragry',
     license='MIT',
     packages=find_packages(exclude=['resources']),
-    data_files=[('my_data', ['data/data_file'])],
+    include_package_data=True,
     classifiers=[
         'Development Status :: 3 - Alpha',
     # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Architecture',
+        'Topic :: Software Development :: Documentation',
 
         # Pick your license as you wish (should match "license" above)
          'License :: OSI Approved :: MIT License',

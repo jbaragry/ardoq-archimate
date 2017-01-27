@@ -4,12 +4,11 @@ import xmltodict
 import logging
 import ardoqpy
 import argparse
+import pkg_resources
 sys.path.append('../resources')
 
-from ardoqpy import ArdoqClient
-from ardoqpy import ArdoqClientException
-
-
+from ardoqpy.ardoqpy import ArdoqClient
+from ardoqpy.ardoqpy import ArdoqClientException
 
 parser = argparse.ArgumentParser(description='Import ArchiMate Open Exchange Format files to Ardoq.')
 parser.add_argument('-c', action="store", default='ardoq_archimate.cfg', help='Relative path to import config file')
@@ -24,6 +23,7 @@ configfile=arguments.c;
 #configfile = "testardoq_archimate.cfg"
 # configfile = "./ardoq_archimate/ardoq_archimate.cfg"
 config = configparser.ConfigParser()
+configMap = configparser.ConfigParser()
 
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 #log file hardcoded in same dir for now
@@ -46,6 +46,9 @@ def get_config():
             raise RuntimeError("Could not read config file ", configfile)
     except:
         raise RuntimeError("could not get config file")
+
+def get_map():
+    configMap.readfp(pkg_resources.resource_stream('ardoq_archimate', 'archimate_ardoq_map.cfg'))
 
 
 def get_tag_name(name_data, lang):
@@ -79,9 +82,9 @@ def get_archimate_elements(doc, types):
             elem['type'] = e['@xsi:type']
             if 'label' not in e.keys():
                 break
-            elem['name'] = get_tag_name(e['label'], config['Archimate']['lang'])
+            elem['name'] = get_tag_name(e['label'], configMap['Archimate']['lang'])
             if 'documentation' in e:
-                elem['description'] = get_tag_name(e['documentation'], config['Archimate']['lang'])
+                elem['description'] = get_tag_name(e['documentation'], configMap['Archimate']['lang'])
             else:
                 elem['description'] = elem['id'] + ' : ' + elem['name']
             elems[e['@identifier']] = elem
@@ -89,7 +92,7 @@ def get_archimate_elements(doc, types):
                 elem['fields'] = {}
                 for p in e['properties']['property']:
                     if type(p) is not unicode:
-                        elem['fields'][field_property_map[p['@identifierref']]] = get_tag_name(p['value'], config['Archimate']['lang'])
+                        elem['fields'][field_property_map[p['@identifierref']]] = get_tag_name(p['value'], configMap['Archimate']['lang'])
         else:
             logger.error('found unknown archimate element type: [%s]', e['@xsi:type'])
     return elems
@@ -106,11 +109,11 @@ def get_archimate_relationships(doc, types):
             elem['source'] = e['@source']
             elem['target'] = e['@target']
             if 'label' in e:
-                elem['name'] = get_tag_name(e['label'], config['Archimate']['lang'])
+                elem['name'] = get_tag_name(e['label'], configMap['Archimate']['lang'])
             else:
                 elem['name'] = elem['type']
             if 'documentation' in e:
-                elem['description'] = get_tag_name(e['documentation'], config['Archimate']['lang'])
+                elem['description'] = get_tag_name(e['documentation'], configMap['Archimate']['lang'])
             else:
                 elem['description'] = elem['id'] + ' : ' + elem['type']
             rels[e['@identifier']] = elem
@@ -266,6 +269,7 @@ def property_field_map(doc):
 
 def main():
     get_config()
+    get_map();
     global ardoq
     host = config['Ardoq']['host']
     if arguments.host != None:
@@ -288,7 +292,7 @@ def main():
     ardoq = ArdoqClient(hosturl=host, token=token, org=org)
     with open(exchange_file) as fd:
         doc = xmltodict.parse(fd.read(),  force_list=set('propertydef'))
-    model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
+    model_name = get_tag_name(doc['model']['name'], configMap['Archimate']['lang'])
     logger.debug('model name: %s', model_name)
     folder_descript = 'archimate import model description'
     if 'metadata' in doc['model'] and 'dc:desciption' in doc['model']['metadata']:
@@ -304,22 +308,22 @@ def main():
     # can do it better if the elementtypes were in a dict
     elements = get_archimate_elements(doc['model']['elements']['element'], config.options('Business'))
     logger.debug('got %s business elems', len(elements))
-    create_ardoq_components(layers['Business'], elements, config['Business'])
+    create_ardoq_components(layers['Business'], elements, configMap['Business'])
     elements = get_archimate_elements(doc['model']['elements']['element'], config.options('Application'))
     logger.debug('got %s application elems', len(elements))
-    create_ardoq_components(layers['Application'], elements, config['Application'])
+    create_ardoq_components(layers['Application'], elements, configMap['Application'])
     elements = get_archimate_elements(doc['model']['elements']['element'], config.options('Technology'))
     logger.debug('got %s technology elems', len(elements))
-    create_ardoq_components(layers['Technology'], elements, config['Technology'])
+    create_ardoq_components(layers['Technology'], elements, configMap['Technology'])
     elements = get_archimate_elements(doc['model']['elements']['element'], config.options('Motivation'))
     logger.debug('got %s motivation elems', len(elements))
-    create_ardoq_components(layers['Motivation'], elements, config['Motivation'])
+    create_ardoq_components(layers['Motivation'], elements, configMap['Motivation'])
     elements = get_archimate_elements(doc['model']['elements']['element'], config.options('Implementation'))
     logger.debug('got %s implementation elems', len(elements))
-    create_ardoq_components(layers['Implementation'], elements, config['Implementation'])
+    create_ardoq_components(layers['Implementation'], elements, configMap['Implementation'])
     logger.info('finished creating components')
     relationships = get_archimate_relationships(doc['model']['relationships']['relationship'], config.options('Relationships'))
-    create_ardoq_references(layers, relationships, config['Relationships'])
+    create_ardoq_references(layers, relationships, configMap['Relationships'])
     # TODO create views
     # need to determine the filters needed for particular views
     logger.info('Finished importing archimate model to ardoq')
