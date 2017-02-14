@@ -18,7 +18,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ardoqarchimate',
-    version='0.0.4',
+    version='0.0.6',
     description='ArchiMate Open Exchange Format (R) importer for Ardoq (R)',
     long_description=long_description,
     url='https://github.com/jbaragry/ardoq-archimate',

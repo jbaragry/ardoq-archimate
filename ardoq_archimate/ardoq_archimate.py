@@ -260,11 +260,11 @@ def property_field_map(doc):
     if 'propertydefs' in doc:
         if type(doc['propertydefs']['propertydef']) is list:
             for p in doc['propertydefs']['propertydef']:
-                print 'Adding property: ' + p['@name']
+                print ('Adding property: ' + p['@name'])
                 field_property_map[p['@identifier']] = p['@name']
         else:
             p = doc['propertydefs']['propertydef']
-            print 'Adding property: ' + p['@name']
+            print ('Adding property: ' + p['@name'])
             field_property_map[p['@identifier']] = p['@name']
 
 def main():
