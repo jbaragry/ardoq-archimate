@@ -48,7 +48,8 @@ def get_config():
         raise RuntimeError("could not get config file")
 
 def get_map():
-    configMap.readfp(pkg_resources.resource_stream('ardoq_archimate', 'archimate_ardoq_map.cfg'))
+    config.read('archimate_ardoq_map.cfg')
+    #configMap.readfp(pkg_resources.resource_stream('ardoq_archimate', 'archimate_ardoq_map.cfg'))
 
 
 def get_tag_name(name_data, lang):
@@ -82,9 +83,9 @@ def get_archimate_elements(doc, types):
             elem['type'] = e['@xsi:type']
             if 'label' not in e.keys():
                 break
-            elem['name'] = get_tag_name(e['label'], configMap['Archimate']['lang'])
+            elem['name'] = get_tag_name(e['label'], config['Archimate']['lang'])
             if 'documentation' in e:
-                elem['description'] = get_tag_name(e['documentation'], configMap['Archimate']['lang'])
+                elem['description'] = get_tag_name(e['documentation'], config['Archimate']['lang'])
             else:
                 elem['description'] = elem['id'] + ' : ' + elem['name']
             elems[e['@identifier']] = elem
@@ -92,7 +93,7 @@ def get_archimate_elements(doc, types):
                 elem['fields'] = {}
                 for p in e['properties']['property']:
                     if type(p) is not unicode:
-                        elem['fields'][field_property_map[p['@identifierref']]] = get_tag_name(p['value'], configMap['Archimate']['lang'])
+                        elem['fields'][field_property_map[p['@identifierref']]] = get_tag_name(p['value'], config['Archimate']['lang'])
         else:
             logger.error('found unknown archimate element type: [%s]', e['@xsi:type'])
     return elems
@@ -109,11 +110,11 @@ def get_archimate_relationships(doc, types):
             elem['source'] = e['@source']
             elem['target'] = e['@target']
             if 'label' in e:
-                elem['name'] = get_tag_name(e['label'], configMap['Archimate']['lang'])
+                elem['name'] = get_tag_name(e['label'], config['Archimate']['lang'])
             else:
                 elem['name'] = elem['type']
             if 'documentation' in e:
-                elem['description'] = get_tag_name(e['documentation'], configMap['Archimate']['lang'])
+                elem['description'] = get_tag_name(e['documentation'], config['Archimate']['lang'])
             else:
                 elem['description'] = elem['id'] + ' : ' + elem['type']
             rels[e['@identifier']] = elem
@@ -292,7 +293,7 @@ def main():
     ardoq = ArdoqClient(hosturl=host, token=token, org=org)
     with open(exchange_file) as fd:
         doc = xmltodict.parse(fd.read(),  force_list=set('propertydef'))
-    model_name = get_tag_name(doc['model']['name'], configMap['Archimate']['lang'])
+    model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
     logger.debug('model name: %s', model_name)
     folder_descript = 'archimate import model description'
     if 'metadata' in doc['model'] and 'dc:desciption' in doc['model']['metadata']:
