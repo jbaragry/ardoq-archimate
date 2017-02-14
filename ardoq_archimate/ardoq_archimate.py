@@ -7,8 +7,8 @@ import argparse
 import pkg_resources
 sys.path.append('../resources')
 
-from ardoqpy.ardoqpy import ArdoqClient
-from ardoqpy.ardoqpy import ArdoqClientException
+from ardoqpy import ArdoqClient
+from ardoqpy import ArdoqClientException
 
 parser = argparse.ArgumentParser(description='Import ArchiMate Open Exchange Format files to Ardoq.')
 parser.add_argument('-c', action="store", default='ardoq_archimate.cfg', help='Relative path to import config file')
