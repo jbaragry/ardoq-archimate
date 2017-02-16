@@ -1,0 +1,6 @@
+# Include the license file
+include LICENSE.md, README.md
+
+# Include the data files
+recursive-include resources *
+recursive-include ardoq_archimate *.cfg
