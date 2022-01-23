@@ -4,18 +4,16 @@
 
 ardoq_archimate is a tool for importing archimate models to [Ardoq](https://ardoq.com).
 
+Note: this is an open source project to import archimate exchange format to Ardoq. 
+It is not an officially supported part of Ardoq.
+Contact the author through github if you find bugs or need updates
 
 ## Documentation
 (see the test client for examples)
 
-Implemented:
 
 ## Limitations / Issues
 - Location not implemented. Waiting for Ardoq to include it in the template
-
-## Installation
-
-`pip install ardoqarchimate`
 
 ## Dependencies
 
@@ -26,16 +24,26 @@ Implemented:
 ## Quick Start
 To get started from an IDE
 
-    clone the repo
-    clone the ardoqpy project
-    adjust your python path to include ardoqpy
-    edit the config file to use your API key
+    clone the repo or just download ardoq_archimate.py
+    install ardoqpy using pip
+    edit the config file to use your API key and host
     edit the config file to point to the archimate exchange file
 
 ## Version
 
-- 2016/04 - Initial version from archimate 2.1 to my own archimate 2.1 model
+- 2022/01 - Updated for new ways of using model templates in Ardoq
 - 2016/11 - Refactored version to import archimate 2.1 to the official ardoq archimate 3 template/model
+- 2016/04 - Initial version from archimate 2.1 to my own archimate 2.1 model
+
+## Changelog
+- 20220121
+  - updated to deal with new ways of using templates and models in Ardoq
+  - deprecated org as a separate param. Now part of hostname
+  - general cleanup for 6y.o code
+
+- 20210717
+  - previous updates
+
 
 ## TODO
 - Make config file available as a cmd line param
