@@ -42,6 +42,7 @@ field_property_map = {}
 
 
 def get_config():
+    """ """
     try:
         logger.debug('path: %s', os.getcwd())
         if len(config.read(configfile)) != 1:
@@ -97,12 +98,17 @@ def get_archimate_elements(doc, types):
                 elem['description'] = elem['id'] + ' : ' + elem['name']
             elems[e['@identifier']] = elem
             if 'properties' in e:
-                elem['fields'] = {}
-                for p in e['properties']['property']:
-                    # f type(p) is not unicode:
-                    if p.isascii():
-                        elem['fields'][field_property_map[p['@identifierref']]] = \
-                            get_tag_name(p['value'], config['Archimate']['lang'])
+                logger.info(f"ignoring properties - {e['properties']['property']}")
+                continue
+                # TODO: fix properties
+                # elem['fields'] = {}
+                # if isinstance(e['properties']['property'], list): # more than one property
+                #     for p in e['properties']['property']: # this returns contents of property if only one property
+                #         # f type(p) is not unicode:
+                #         elem['fields'][field_property_map[p['@propertyDefinitionRef']]] = \
+                #             get_tag_name(p['value'], config['Archimate']['lang'])
+                # else:
+                #    print("TODO")
         else:
             foundElem = False
             for mainType in configMap:

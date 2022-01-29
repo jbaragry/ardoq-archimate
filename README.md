@@ -11,9 +11,10 @@ Contact the author through github if you find bugs or need updates
 ## Documentation
 (see the test client for examples)
 
-
 ## Limitations / Issues
 - Location not implemented. Waiting for Ardoq to include it in the template
+- Workspaces are not added to folder. API call to move a workspace is not working
+- Properties are ignored
 
 ## Dependencies
 
@@ -47,9 +48,9 @@ To get started from an IDE
 
 ## TODO
 - Make config file available as a cmd line param
-- import archimate 3 exchange file once the spec if updated
 - make the tool easier for non-programmers to use
     - perhaps solution in AWS lamda to provide archimate import as a service to Ardoq
+- Import Properties as Fields
 
 ## License
 ardoq_archimate is licensed under the MIT License
