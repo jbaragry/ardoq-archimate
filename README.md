@@ -41,6 +41,7 @@ To get started from an IDE
   - updated to deal with new ways of using templates and models in Ardoq
   - deprecated org as a separate param. Now part of hostname
   - general cleanup for 6y.o code
+  - ignore properties until they can be successfully imported as Fields
 
 - 20210717
   - previous updates
