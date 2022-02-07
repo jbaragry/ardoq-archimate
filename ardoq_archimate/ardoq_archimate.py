@@ -14,9 +14,7 @@ parser.add_argument('-o', action="store", default=None, help='Organisation to sa
 
 arguments = parser.parse_args()
 
-# configfile = arguments.c
-configfile = "testardoq_archimate.cfg"
-# configfile = "./ardoq_archimate/ardoq_archimate.cfg"
+configfile = "ardoq_archimate.cfg"
 config = configparser.ConfigParser()
 configMap = configparser.ConfigParser()
 
