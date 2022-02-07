@@ -29,6 +29,7 @@ To get started from an IDE
     install ardoqpy using pip
     edit the config file to use your API key and host
     edit the config file to point to the archimate exchange file
+    when in dir ardoq_archimate, run program
 
 ## Version
 
