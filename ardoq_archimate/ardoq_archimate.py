@@ -14,7 +14,8 @@ parser.add_argument('-o', action="store", default=None, help='Organisation to sa
 
 arguments = parser.parse_args()
 
-configfile = "ardoq_archimate.cfg"
+configfile = "testardoq_archimate.cfg"
+# configfile = "ardoq_archimate.cfg"
 config = configparser.ConfigParser()
 configMap = configparser.ConfigParser()
 
@@ -246,6 +247,8 @@ def create_model_space(model_name, model_descript=None):
     global wspaces
     wspaces = {'Business': {'name': 'Business Layer', 'model_id': business_layer_template,
                             'config_name': 'Business'},
+               'Strategy': {'name': 'Strategy Layer', 'model_id': strategy_layer_template,
+                            'config_name': 'Strategy'},
                'Application': {'name': 'Application Layer', 'model_id': application_layer_template,
                                'config_name': 'Application'},
                'Technology': {'name': 'Technology Layer', 'model_id': technology_layer_template,
@@ -336,19 +339,24 @@ def main():
     # can do it better if the elementtypes were in a dict
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Business'))
     logger.debug('got %s business elems', len(elements))
-    print(layers['Business'])
-    print(configMap)
-    print(configMap['Business'])
     create_ardoq_components(layers['Business'], elements, configMap['Business'])
+
+    elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Strategy'))
+    logger.debug('got %s strategy elems', len(elements))
+    create_ardoq_components(layers['Strategy'], elements, configMap['Strategy'])
+
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Application'))
     logger.debug('got %s application elems', len(elements))
     create_ardoq_components(layers['Application'], elements, configMap['Application'])
+
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Technology'))
     logger.debug('got %s technology elems', len(elements))
     create_ardoq_components(layers['Technology'], elements, configMap['Technology'])
+
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Motivation'))
     logger.debug('got %s motivation elems', len(elements))
     create_ardoq_components(layers['Motivation'], elements, configMap['Motivation'])
+
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Implementation'))
     logger.debug('got %s implementation elems', len(elements))
     create_ardoq_components(layers['Implementation'], elements, configMap['Implementation'])

@@ -33,6 +33,7 @@ To get started from an IDE
 
 ## Version
 
+- 2022/02 - Added Strategy workspace and ValueStream components
 - 2022/01 - Updated for new ways of using model templates in Ardoq
 - 2016/11 - Refactored version to import archimate 2.1 to the official ardoq archimate 3 template/model
 - 2016/04 - Initial version from archimate 2.1 to my own archimate 2.1 model
