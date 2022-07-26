@@ -14,8 +14,7 @@ parser.add_argument('-o', action="store", default=None, help='Organisation to sa
 
 arguments = parser.parse_args()
 
-configfile = "testardoq_archimate.cfg"
-# configfile = "ardoq_archimate.cfg"
+configfile = "ardoq_archimate.cfg"
 config = configparser.ConfigParser()
 configMap = configparser.ConfigParser()
 
@@ -23,13 +22,7 @@ logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 # log file hardcoded in same dir for now
 logger = logging.getLogger(__name__)
 ardoq = None
-# business_layer_template = '57c447c972fa6d6e74679763'
-# application_layer_template = '57c447c972fa6d6e74679765'
-# technology_layer_template = '57c447c972fa6d6e74679762'
-# motivation_layer_template = '57c447c972fa6d6e74679767'
-# strategy_layer_template = '57c447c972fa6d6e74679766'
-# implementation_layer_template = '57c447c972fa6d6e74679764'
-# physical_layer_template = '57c447c972fa6d6e74679768'
+
 business_layer_template = '57c447c972fa6d6e74679763'
 application_layer_template = '57c447c972fa6d6e74679765'
 technology_layer_template = '57c447c972fa6d6e74679762'
