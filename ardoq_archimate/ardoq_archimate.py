@@ -253,7 +253,7 @@ def create_model_space(model_name, model_descript=None):
                'Physical': {'name': 'Physical', 'model_id': physical_layer_template,
                             'config_name': 'Physical'}}
 
-    views = ["blockdiagram", "componenttree", "processflow", "reader", "relationships"]
+    views = ["pagesView", "componenttree", "blockDiagram", "relationships2", "dependencyMap", "depmatrix"]
     ws_list = []
     # TODO: include the process and component views in the ws creation
     # TODO: create fields to hold archimate import IDs
