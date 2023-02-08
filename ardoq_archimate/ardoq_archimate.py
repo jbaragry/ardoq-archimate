@@ -52,6 +52,7 @@ merge_ws = {
     'Physical': 'a7a566db8ead4012474639cc',
     'Technology': '41eba3746d8f719cf5841b31'
 }
+# set archimate_merge to true to use the SyncClient
 archimate_merge = True
 
 
