@@ -1,9 +1,11 @@
 import configparser
 import os
+import sys
 import xmltodict
 import logging
 import argparse
 from ardoqpy import ArdoqClient, ArdoqClientException
+from ardoqpy import ArdoqSyncClient, ArdoqClientException
 
 parser = argparse.ArgumentParser(description='Import ArchiMate Open Exchange Format files to Ardoq.')
 parser.add_argument('-c', action="store", default='ardoq_archimate.cfg', help='Relative path to import config file')
@@ -30,6 +32,7 @@ ardoq = None
 # strategy_layer_template = '57c447c972fa6d6e74679766'
 # implementation_layer_template = '57c447c972fa6d6e74679764'
 # physical_layer_template = '57c447c972fa6d6e74679768'
+# TODO: these IDs should be pulled from the metamodel for the org
 business_layer_template = '57c447c972fa6d6e74679763'
 application_layer_template = '57c447c972fa6d6e74679765'
 technology_layer_template = '57c447c972fa6d6e74679762'
@@ -38,6 +41,18 @@ strategy_layer_template = '57c447c972fa6d6e74679766'
 implementation_layer_template = '57c447c972fa6d6e74679764'
 physical_layer_template = '57c447c972fa6d6e74679768'
 field_property_map = {}
+
+# merge test
+merge_ws = {
+    'Strategy': '2257c7eecdd3c9ddc48da2d2',
+    'Application': 'e12884297a2f13db526866fc',
+    'Business': 'ea04a5e4cc869efab9ac24bd',
+    'Motivation': 'c9e895cba91495d76459bc8c',
+    'Implementation':'ff0e2d28542ac8dc870449ba',
+    'Physical': 'a7a566db8ead4012474639cc',
+    'Technology': '41eba3746d8f719cf5841b31'
+}
+archimate_merge = True
 
 
 def get_config():
@@ -227,21 +242,24 @@ def get_archimate_templates():
 
 def create_model_space(model_name, model_descript=None):
     # TODO: check that the modeltype is available....
-    '''
+    """
     create an ardoq folder for the project and then workspaces for each archimate layer
     :param model_name: name from interchange file
     :param model_descript: text description from interchange file
     :return: dict of layers in ardoq. names and model ids
-    '''
-    if model_descript is None:
-        model_descript = 'folder for the imported archimate model'
-    folder = {'name': model_name, 'description': model_descript}
-    logger.debug('creating folder for model: %s', folder)
-    try:
-        f = ardoq.create_folder(folder)
-        logger.debug('created folder: %s', f)
-    except ArdoqClientException as e:
-        print(e)
+    """
+
+    if not archimate_merge:
+        if model_descript is None:
+            model_descript = 'folder for the imported archimate model'
+        folder = {'name': model_name, 'description': model_descript}
+        logger.debug('creating folder for model: %s', folder)
+        try:
+            f = ardoq.create_folder(folder)
+            logger.debug('created folder: %s', f)
+        except ArdoqClientException as e:
+            print(e)
+            sys.exit()
     # TODO: get this information instead of hardocding
     # TODO: maybe seperate layer for Data?
     global wspaces
@@ -265,26 +283,29 @@ def create_model_space(model_name, model_descript=None):
     # TODO: include the process and component views in the ws creation
     # TODO: create fields to hold archimate import IDs
     for k, w in wspaces.items():
-        logger.debug('create a workspace for %s', w['name'])
-        new_workspace = {'description': 'workspace for archimate ' + w['name'], 'componentTemplate': w['model_id'],
-                         'name': w['name'], 'folder': f['_id'], 'views': views}
-        try:
-            workspace = ardoq.create_workspace(new_workspace)
-            logger.debug('workspace created: %s', workspace)
-            # ws_list.append(workspace['_id'])
-            w['ws_id'] = workspace['_id']
+        if not archimate_merge:
+            logger.debug('create a workspace for %s', w['name'])
+            new_workspace = {'description': 'workspace for archimate ' + w['name'], 'componentTemplate': w['model_id'],
+                             'name': w['name'], 'folder': f['_id'], 'views': views}
+            try:
+                workspace = ardoq.create_workspace(new_workspace)
+                logger.debug('workspace created: %s', workspace)
+                # ws_list.append(workspace['_id'])
+                w['ws_id'] = workspace['_id']
 
-            for field, field_value in field_property_map.items():
-                if field_value and len(field_value) > 1:
-                    logger.debug('Creating field: %s', field_value)
-                    # Creating fields for each componentModel.
-                    newField = {'model': workspace['componentModel'], 'name': field_value, 'label': field_value,
-                                'type': 'Text', 'global': True, 'description': '', 'globalref': False,
-                                'defaultValue': ''}
-                    ardoq.create_field(newField)
+                for field, field_value in field_property_map.items():
+                    if field_value and len(field_value) > 1:
+                        logger.debug('Creating field: %s', field_value)
+                        # Creating fields for each componentModel.
+                        newField = {'model': workspace['componentModel'], 'name': field_value, 'label': field_value,
+                                    'type': 'Text', 'global': True, 'description': '', 'globalref': False,
+                                    'defaultValue': ''}
+                        ardoq.create_field(newField)
 
-        except ArdoqClientException as e:
-            print(e)
+            except ArdoqClientException as e:
+                print(e)
+        else:
+            w['ws_id'] = merge_ws[k]
     return wspaces
 
 
@@ -322,7 +343,10 @@ def main():
     if arguments.x is not None:
         exchange_file = arguments.x
 
-    ardoq = ArdoqClient(hosturl=host, token=token)
+    if not archimate_merge:
+        ardoq = ArdoqClient(hosturl=host, token=token)
+    else:
+        ardoq = ArdoqSyncClient(hosturl=host, token=token)
     with open(exchange_file) as fd:
         doc = xmltodict.parse(fd.read(),  force_list=set('propertydef'))
     model_name = get_tag_name(doc['model']['name'], config['Archimate']['lang'])
