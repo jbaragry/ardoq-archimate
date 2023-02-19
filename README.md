@@ -41,12 +41,17 @@ Using config file:
 
 ## Version
 
+- 2023/02 - parent-child for composition
+- 2022/12 - Added flag to use the sync client to update components rather than replace
 - 2022/02 - Added Strategy workspace and ValueStream component types
 - 2022/01 - Fix to support changes to usage of model templates in Ardoq
 - 2016/11 - Refactored version to import archimate 2.1 to the official ardoq archimate 3 template/model
 - 2016/04 - Initial version from archimate 2.1 to my own archimate 2.1 model
 
 ## Changelog
+- 20230216
+  - ability to convert composition to parent-child relationships for named component types. p-c must be of the same type
+
 - 20220121
   - updated to deal with new ways of using templates and models in Ardoq
   - deprecated org as a separate param. Now part of hostname

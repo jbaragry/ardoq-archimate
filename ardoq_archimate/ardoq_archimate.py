@@ -54,6 +54,8 @@ merge_ws = {
 }
 # set archimate_merge to true to use the SyncClient
 archimate_merge = True
+# convert composition to parent-child relationships for component types in this list
+composition_parent = ['Strategy Capability']
 
 
 def get_config():
@@ -167,6 +169,7 @@ def create_ardoq_components(layer, elems, config_items):
     # get the model for the workspace so that I can get the ID
     ws_id = layer['ws_id']
     id_map = {}
+    id_type_map = {}
     try:
         model = ardoq.get_model(ws_id=ws_id)
     except ArdoqClientException as e:
@@ -193,22 +196,26 @@ def create_ardoq_components(layer, elems, config_items):
                         component[f] = fv
                 comp = ardoq.create_component(comp=component)
                 id_map[ev['id']] = comp['_id']
+                # this should go in the same map dict but then I'd need to refactor a bunch of stuff
+                id_type_map[comp['_id']] = ardoq_type['id']
             except ArdoqClientException as e:
                 logger.debug('error adding component: %s - %s', ev['name'], e)
         else:
             logger.error('could not find element type in config file: %s', ev['type'])
     layer['id_map'] = id_map
+    layer['id_type_map'] = id_type_map
 
 
 def create_ardoq_references(layers, rels, config_items):
     for rk, rv in rels.items():
-        source_id = source_ws = None
-        target_id = target_ws = None
+        source_id = source_ws = source_type = None
+        target_id = target_ws = target_type = None
         ref_id = None
         for lk, lv in layers.items():
             if rv['source'] in lv['id_map'].keys():
                 source_id = lv['id_map'][rv['source']]
                 source_ws = lv['ws_id']
+                source_type = lv['ardoq_component_types'][lv['id_type_map'][source_id]]['name']
                 for ref_k, ref_v in lv['ardoq_reference_types'].items():
                     if config_items[rv['type'].lower()] == ref_v['name']:
                         ref_id = ref_k
@@ -216,17 +223,28 @@ def create_ardoq_references(layers, rels, config_items):
             if rv['target'] in lv['id_map'].keys():
                 target_id = lv['id_map'][rv['target']]
                 target_ws = lv['ws_id']
+                target_type = lv['ardoq_component_types'][lv['id_type_map'][target_id]]['name']
             # find the rel_type number in the source workspace
         logger.debug('creating new ref with %s - %s', rk, ref_id)
         if ref_id is None:
             continue
-        try:
-            ref = {'order': 0, 'returnValue': '', 'targetWorkspace': target_ws, 'target': target_id,
-                   'source': source_id, 'rootWorkspace': source_ws, 'type': int(ref_id),
-                   'description': rv['name'] + '\n' + rv['description']}
-            ardoq_ref = ardoq.create_reference(ref=ref)
-        except ArdoqClientException as e:
-            logger.debug('error adding reference: %s - %s', rv['name'], e)
+        # if rv['type'] == 'Composition than check find the source and target component types and check
+        # if they are Strategy Capability types
+        if rv['type'] == 'Composition'\
+                and (source_type in composition_parent) \
+                and (source_type == target_type):
+            comp = ardoq.get_component(comp_id=target_id)
+            if not (comp['parent']):
+                comp['parent'] = source_id
+                comp = ardoq.update_component(comp_id=target_id, comp=comp)
+        else:
+            try:
+                ref = {'order': 0, 'returnValue': '', 'targetWorkspace': target_ws, 'target': target_id,
+                       'source': source_id, 'rootWorkspace': source_ws, 'type': int(ref_id),
+                       'description': rv['name'] + '\n' + rv['description']}
+                ardoq_ref = ardoq.create_reference(ref=ref)
+            except ArdoqClientException as e:
+                logger.debug('error adding reference: %s - %s', rv['name'], e)
 
 
 def get_archimate_templates():
