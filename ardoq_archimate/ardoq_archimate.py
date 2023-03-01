@@ -42,20 +42,24 @@ implementation_layer_template = '57c447c972fa6d6e74679764'
 physical_layer_template = '57c447c972fa6d6e74679768'
 field_property_map = {}
 
-# merge test
-merge_ws = {
-    'Strategy': '2257c7eecdd3c9ddc48da2d2',
-    'Application': 'e12884297a2f13db526866fc',
-    'Business': 'ea04a5e4cc869efab9ac24bd',
-    'Motivation': 'c9e895cba91495d76459bc8c',
-    'Implementation':'ff0e2d28542ac8dc870449ba',
-    'Physical': 'a7a566db8ead4012474639cc',
-    'Technology': '41eba3746d8f719cf5841b31'
+# update test
+update_ws = {
+    'Strategy': {'ws_id': '2257c7eecdd3c9ddc48da2d2', 'ws_name': 'Strategy'},
+    'Application': {'ws_id': 'e12884297a2f13db526866fc', 'ws_name': 'Application'},
+    'Business': {'ws_id': 'ea04a5e4cc869efab9ac24bd', 'ws_name': 'Business'},
+    'Motivation': {'ws_id': 'c9e895cba91495d76459bc8c', 'ws_name': 'Motivation'},
+    'Implementation': {'ws_id': 'ff0e2d28542ac8dc870449ba','ws_name': 'Implementation'},
+    'Physical': {'ws_id': 'a7a566db8ead4012474639cc', 'ws_name': 'Physical'},
+    'Technology': {'ws_id': '41eba3746d8f719cf5841b31', 'ws_name': 'Technology'}
 }
 # set archimate_merge to true to use the SyncClient
-archimate_merge = True
-# convert composition to parent-child relationships for component types in this list
-composition_parent = ['Strategy Capability']
+archimate_update = True
+# set update key to be workspace 'id' or 'name'
+archimate_update_key = 'id'
+# convert composition to parent-child relationships for component types in this list.
+# use empty list of no conversion
+composition_parent = []
+# composition_parent = ['Strategy Capability']
 
 
 def get_config():
@@ -104,6 +108,12 @@ def get_archimate_elements(doc, types):
                 nameKey = 'label'
             elif 'name' in e.keys():
                 nameKey = 'name'
+            # get all the attributes to be tried as fields later
+            attribs = [a for a in e.keys() if a[0] == '@' and a not in ['@xsi:type', '@identifier']]
+            elem['attribs'] = {}
+            for a in attribs:
+                # remember to drop the @ later
+                elem['attribs'][a] = e[a]
 
             if not nameKey:
                 elem['name'] = elem['id']
@@ -115,6 +125,7 @@ def get_archimate_elements(doc, types):
                 elem['description'] = elem['id'] + ' : ' + elem['name']
             elems[e['@identifier']] = elem
             if 'properties' in e:
+                # this was for using Archi properties to capture fields
                 logger.info(f"ignoring properties - {e['properties']['property']}")
                 continue
                 # TODO: fix properties
@@ -157,13 +168,14 @@ def get_archimate_relationships(doc, types):
     return rels
 
 
-def create_ardoq_components(layer, elems, config_items):
+def create_ardoq_components(layer, elems, config_items, fields):
     '''
     Need to rewrite this whole function. Some 2.1 components need to move to other spaces
     takes on dict of ardoq definitions
     :param layer: dict of one ardoq workspace
     :param elems: list of elements for that layer from interchange file
     :param config_items: relevant section from config file
+    :param fields: list of all the fields in ardoq
     :return:
     '''
     # get the model for the workspace so that I can get the ID
@@ -194,12 +206,28 @@ def create_ardoq_components(layer, elems, config_items):
                 if 'fields' in ev:
                     for f, fv in ev['fields'].items():
                         component[f] = fv
+                # check for fields in attribs
+                # to check if the attrib name is a valid field I need to pull all from the fields API and then
+                # find the field name and then check if the this comp type is in the list of comp types
+                # it applies to
+                field = None
+                for a in ev['attribs']:
+                    # check if the field exists (only search for the first occurance)
+                    field = next((f for f in fields if f['name'] == a[1:]), False)
+                    if not field:
+                        logger.error(f"Error: Could not find a field in Ardoq for the element attribute {a} in the element with the name {ev['name']}")
+                    else:
+                        # first confirm the types. Assumme type is string
+                        # maybe don't need match if its only str, int, and dates I need to worry about
+                        field_val = ev['attribs'][a]
+                        # convert types - only check for int now. maybe datetime later
+                        component[a[1:]] = field_val if field['type'] != 'Number' else int(field_val)
                 comp = ardoq.create_component(comp=component)
                 id_map[ev['id']] = comp['_id']
                 # this should go in the same map dict but then I'd need to refactor a bunch of stuff
                 id_type_map[comp['_id']] = ardoq_type['id']
             except ArdoqClientException as e:
-                logger.debug('error adding component: %s - %s', ev['name'], e)
+                logger.error('error adding component: %s - %s', ev['name'], e)
         else:
             logger.error('could not find element type in config file: %s', ev['type'])
     layer['id_map'] = id_map
@@ -268,7 +296,7 @@ def create_model_space(model_name, model_descript=None):
     :return: dict of layers in ardoq. names and model ids
     """
 
-    if not archimate_merge:
+    if not archimate_update:
         if model_descript is None:
             model_descript = 'folder for the imported archimate model'
         folder = {'name': model_name, 'description': model_descript}
@@ -301,8 +329,10 @@ def create_model_space(model_name, model_descript=None):
     ws_list = []
     # TODO: include the process and component views in the ws creation
     # TODO: create fields to hold archimate import IDs
+    if archimate_update and archimate_update_key == 'name':
+        wss = get_workspaces()
     for k, w in wspaces.items():
-        if not archimate_merge:
+        if not archimate_update:
             logger.debug('create a workspace for %s', w['name'])
             new_workspace = {'description': 'workspace for archimate ' + w['name'], 'componentTemplate': w['model_id'],
                              'name': w['name'], 'folder': f['_id'], 'views': views}
@@ -324,7 +354,14 @@ def create_model_space(model_name, model_descript=None):
             except ArdoqClientException as e:
                 print(e)
         else:
-            w['ws_id'] = merge_ws[k]
+            if archimate_update_key == 'name':
+                ws = next((item for item in ww if item['name'] == update_ws[k]['ws_name']), False)
+                if not ws:
+                    logging.error(f"can't find update workspace with name {update_ws[k]['ws_name']}. Quitting")
+                else:
+                    w['ws_id'] = ws['_id']
+            else:
+                w['ws_id'] = update_ws[k]['ws_id']
     return wspaces
 
 
@@ -362,7 +399,7 @@ def main():
     if arguments.x is not None:
         exchange_file = arguments.x
 
-    if not archimate_merge:
+    if not archimate_update:
         ardoq = ArdoqClient(hosturl=host, token=token)
     else:
         ardoq = ArdoqSyncClient(hosturl=host, token=token)
@@ -377,36 +414,37 @@ def main():
 
     property_field_map(doc['model'])
     layers = create_model_space(model_name=model_name, model_descript=folder_descript)
+    fields = ardoq.get_field()
 
     # TODO: this bit is very inefficient. looping through all elements 3 times.
     # can do it better if the elementtypes were in a dict
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Business'))
     logger.debug('got %s business elems', len(elements))
-    create_ardoq_components(layers['Business'], elements, configMap['Business'])
+    create_ardoq_components(layers['Business'], elements, configMap['Business'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Strategy'))
     logger.debug('got %s strategy elems', len(elements))
-    create_ardoq_components(layers['Strategy'], elements, configMap['Strategy'])
+    create_ardoq_components(layers['Strategy'], elements, configMap['Strategy'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Application'))
     logger.debug('got %s application elems', len(elements))
-    create_ardoq_components(layers['Application'], elements, configMap['Application'])
+    create_ardoq_components(layers['Application'], elements, configMap['Application'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Technology'))
     logger.debug('got %s technology elems', len(elements))
-    create_ardoq_components(layers['Technology'], elements, configMap['Technology'])
+    create_ardoq_components(layers['Technology'], elements, configMap['Technology'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Motivation'))
     logger.debug('got %s motivation elems', len(elements))
-    create_ardoq_components(layers['Motivation'], elements, configMap['Motivation'])
+    create_ardoq_components(layers['Motivation'], elements, configMap['Motivation'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Implementation'))
     logger.debug('got %s implementation elems', len(elements))
-    create_ardoq_components(layers['Implementation'], elements, configMap['Implementation'])
+    create_ardoq_components(layers['Implementation'], elements, configMap['Implementation'], fields)
 
     elements = get_archimate_elements(doc['model']['elements']['element'], configMap.options('Physical'))
     logger.debug('got %s physical elems', len(elements))
-    create_ardoq_components(layers['Physical'], elements, configMap['Physical'])
+    create_ardoq_components(layers['Physical'], elements, configMap['Physical'], fields)
 
     logger.info('finished creating components')
     relationships = \
